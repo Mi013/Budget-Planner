@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Budget Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+    :root{
+        --bg:#f7f8fb; --card:#fff; --text:#222; --accent:#4f46e5;
+    }
+    body{font-family:Inter,system-ui,Segoe UI,Arial; margin:0; background:var(--bg); color:var(--text);}
+    header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(90deg,rgba(79,70,229,0.08),transparent);border-bottom:1px solid rgba(0,0,0,0.04)}
+    h1{font-size:18px;margin:0}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:20px}
+    .card{background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 18px rgba(20,20,40,0.06)}
+    label{display:block;font-size:13px;margin:8px 0 6px;color:#444}
+    input[type=text],input[type=number],select,textarea,input[type=password]{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #e6e9ef;background:transparent;box-sizing:border-box}
+    button{background:var(--accent);color:white;border:0;padding:8px 12px;border-radius:8px;cursor:pointer}
+    button.ghost{background:transparent;color:var(--accent);border:1px solid rgba(79,70,229,0.12)}
+    .small{font-size:13px;padding:6px 8px}
+    .meta{display:flex;gap:8px;align-items:center;font-size:13px;color:#666;margin-top:8px}
+    .expenses{max-height:300px;overflow:auto;margin-top:10px}
+    .expense{display:flex;justify-content:space-between;padding:10px;border-radius:8px;border:1px solid #f0f2f6;margin-bottom:8px;align-items:center}
+    .expense .meta{gap:6px}
+    .designs{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .design{padding:10px;border-radius:8px;border:1px dashed #e8eaf6;background:#fbfbff;cursor:pointer;font-size:13px}
+    .design.active{border-style:solid;border-color:var(--accent);box-shadow:0 6px 18px rgba(79,70,229,0.08)}
+    .themes{display:flex;gap:8px;margin-top:8px}
+    .swatch{width:34px;height:34px;border-radius:8px;border:2px solid #fff;box-shadow:0 4px 12px rgba(0,0,0,0.06);cursor:pointer}
+    .swatch.locked{opacity:0.36;cursor:not-allowed;filter:grayscale(0.9)}
+    .top-stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .stat{flex:1;min-width:160px;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff, #fbfcff);box-shadow:0 6px 16px rgba(20,20,40,0.04)}
+    .controls{display:flex;gap:8px;flex-wrap:wrap}
+    .login-area{display:flex;gap:8px;align-items:center}
+    footer{padding:16px;text-align:center;color:#888;font-size:13px}
+    /* Designs */
+    .design-mode-list .expense{border-radius:6px}
+    .design-mode-card .expense{box-shadow:0 6px 18px rgba(20,20,40,0.04)}
+    .design-mode-minimal .expense{border:0;background:transparent;padding:6px}
+    /* Themes */
+    .theme-rose{--accent:#e11d48; --bg:#fff5f6; --card:#fff}
+    .theme-emerald{--accent:#059669; --bg:#f0fdf4; --card:#fff}
+    .theme-indigo{--accent:#4f46e5; --bg:#f7f8fb; --card:#fff}
+    .disabled-note{color:#b02a2a;font-size:13px;margin-top:8px}
+    .right-column{display:flex;flex-direction:column;gap:12px}
+    .chart-wrap{height:280px}
+    .tiny{font-size:12px;color:#666;}
+    .badge{background:linear-gradient(90deg,var(--accent),#6366f1);color:white;padding:6px 8px;border-radius:999px;font-size:12px}
+    .danger{background:#fee2e2;color:#9f1239;padding:6px 8px;border-radius:8px}
+    .actions{display:flex;gap:8px}
+    .muted{color:#666;font-size:13px}
+    .linklike{background:none;border:0;color:var(--accent);cursor:pointer;text-decoration:underline;padding:0}
+    /* responsive */
+    @media (max-width:900px){.grid{grid-template-columns:1fr}}
+
+    /* Auth panel (slide-in) */
+    #authPanel{position:fixed;right:18px;top:72px;width:320px;background:var(--card);border-radius:12px;padding:14px;box-shadow:0 18px 40px rgba(20,20,40,0.12);display:none;z-index:1200}
+    #authPanel h3{margin:0 0 8px 0}
+    .auth-tabs{display:flex;gap:8px;margin-bottom:8px}
+    .auth-tabs button{flex:1;padding:8px;border-radius:8px}
+    .auth-row{margin-bottom:8px}
+    .auth-footer{text-align:right}
+
+    /* Pro popup (animated) */
+    .pro-popup{position:fixed;left:20px;bottom:20px;background:linear-gradient(135deg,var(--accent),#6366f1);color:white;padding:14px;border-radius:12px;box-shadow:0 18px 40px rgba(20,20,40,0.18);z-index:1300;display:flex;gap:10px;align-items:center;min-width:220px;overflow:hidden}
+    .pro-popup .msg{font-weight:600}
+    .pro-popup .cta{background:rgba(255,255,255,0.12);border-radius:8px;padding:6px 8px;color:white;border:0;cursor:pointer}
+    .pro-popup .close{background:none;border:0;color:rgba(255,255,255,0.8);font-weight:700;cursor:pointer;padding:6px 8px}
+    .pro-popup .floaters{position:absolute;right:-30px;top:-30px;width:120px;height:120px;pointer-events:none}
+    .pro-circle{position:absolute;border-radius:999px;opacity:0.9}
+    .f1{width:40px;height:40px;background:rgba(255,255,255,0.12);right:10px;top:10px;animation:float1 4s ease-in-out infinite}
+    .f2{width:28px;height:28px;background:rgba(255,255,255,0.18);right:34px;top:60px;animation:float2 3.2s ease-in-out infinite}
+    .f3{width:18px;height:18px;background:rgba(255,255,255,0.22);right:70px;top:30px;animation:float3 3.6s ease-in-out infinite}
+    @keyframes float1{0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-10px) rotate(8deg)}100%{transform:translateY(0) rotate(0)}}
+    @keyframes float2{0%{transform:translateY(0) rotate(0)}50%{transform:translateY(-8px) rotate(-6deg)}100%{transform:translateY(0) rotate(0)}}
+    @keyframes float3{0%{transform:translateY(0)}50%{transform:translateY(-6px)}100%{transform:translateY(0)}}
+</style>
+</head>
+<body>
+<header>
+    <h1>Budget Planner</h1>
+    <div style="display:flex;gap:10px;align-items:center">
+        <div id="userArea" class="login-area">
+            <button id="btnAccount" class="ghost small">Account</button>
+        </div>
+        <div id="proBadgeArea"></div>
+    </div>
+</header>
+
+<main class="container">
+    <div class="grid">
+        <div>
+            <div class="card">
+                <strong>Neuen Eintrag</strong>
+                <label>Typ</label>
+                <select id="entryType">
+                    <option value="expense">Ausgabe</option>
+                    <option value="income">Einnahme</option>
+                </select>
+                <label>Beschreibung</label>
+                <input id="desc" type="text" placeholder="z. B. Mittagessen" />
+                <label>Betrag (€)</label>
+                <input id="amount" type="number" step="0.01" placeholder="0.00" />
+                <label>Kategorie</label>
+                <input id="category" type="text" placeholder="z. B. Essen" />
+                <div style="display:flex;gap:8px;margin-top:10px">
+                    <button id="addBtn">Hinzufügen</button>
+                    <button id="exportJSON" class="ghost small">Export JSON</button>
+                    <button id="importJSON" class="ghost small">Import JSON</button>
+                </div>
+
+                <div class="meta">
+                    <div class="muted">Freie Version: max. 10 Ausgaben und 10 Einnahmen</div>
+                    <div id="proNote" style="margin-left:auto"></div>
+                </div>
+
+                <div style="margin-top:12px">
+                    <label>Design wählen</label>
+                    <div class="designs">
+                        <div class="design active" data-mode="card">Card</div>
+                        <div class="design" data-mode="list">List</div>
+                        <div class="design" data-mode="minimal">Minimal</div>
+                    </div>
+
+                    <label>Themen</label>
+                    <div class="themes">
+                        <div class="swatch" data-theme="indigo" title="Indigo" style="background:linear-gradient(90deg,#eef2ff,#eef2ff)"></div>
+                        <div class="swatch" data-theme="emerald" title="Emerald" style="background:linear-gradient(90deg,#ecfdf5,#ecfdf5)"></div>
+                        <div class="swatch locked" data-theme="rose" data-pro="1" title="Rose (Pro)" style="background:linear-gradient(90deg,#fff1f2,#fff1f2)"></div>
+                    </div>
+                    <div id="themeNote" class="tiny">Einige Themes sind Pro-Only.</div>
+                </div>
+
+                <div style="margin-top:12px">
+                    <label>Pro freischalten</label>
+                    <div style="display:flex;gap:8px">
+                        <input id="proCode" type="text" placeholder="Pro-Code eingeben" />
+                        <button id="unlockPro" class="small">Freischalten</button>
+                    </div>
+                    <div id="proMsg" class="tiny"></div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+                <strong>Ausgaben</strong>
+                <div id="expensesList" class="expenses"></div>
+                <div id="freeLimitNote" class="tiny muted"></div>
+            </div>
+
+            <div class="card" style="margin-top:12px">
+                <strong>Einnahmen</strong>
+                <div id="incomesList" class="expenses"></div>
+                <div id="freeLimitNoteIncome" class="tiny muted"></div>
+            </div>
+        </div>
+
+        <div class="right-column">
+            <div class="card">
+                <div style="display:flex;justify-content:space-between;align-items:center">
+                    <strong>Statistiken</strong>
+                    <div class="actions">
+                        <button id="downloadPdf" class="small">PDF herunterladen</button>
+                        <button id="clearAll" class="small ghost">Alles löschen</button>
+                    </div>
+                </div>
+                <div class="top-stats" style="margin-top:12px">
+                    <div class="stat">
+                        <div class="tiny">Einnahmen</div>
+                        <div id="totalIncome" style="font-weight:600;font-size:20px">€0.00</div>
+                    </div>
+                    <div class="stat">
+                        <div class="tiny">Ausgaben</div>
+                        <div id="totalExpense" style="font-weight:600;font-size:20px">€0.00</div>
+                    </div>
+                    <div class="stat">
+                        <div class="tiny">Netto</div>
+                        <div id="net" style="font-weight:600;font-size:20px">€0.00</div>
+                    </div>
+                </div>
+
+                <div class="chart-wrap card" style="padding:10px;margin-top:10px">
+                    <canvas id="categoryChart" style="width:100%;height:240px"></canvas>
+                </div>
+
+                <div style="margin-top:10px" class="tiny">
+                    Zusätzliche Funktionen: Kategorien, JSON-Import/Export, Themes & Designs. Pro ermöglicht unbegrenzte Einträge, mehr Themes, PDF-Export & Anmeldung.
+                </div>
+            </div>
+
+            <div class="card">
+                <strong>Benutzer</strong>
+                <div id="authArea" style="margin-top:8px">
+                    <div class="tiny">Benutzerverwaltung im Account-Panel (Account → Anmelden/Registrieren).</div>
+                    <div style="margin-top:10px;display:flex;gap:8px">
+                        <button id="showLogin" class="small">Anmelden</button>
+                        <button id="showRegister" class="small ghost">Registrieren</button>
+                    </div>
+                </div>
+                <div id="loggedIn" style="display:none;margin-top:12px">
+                    <div class="tiny">Angemeldet als <span id="usernameDisplay" style="font-weight:600"></span></div>
+                    <div style="margin-top:8px;display:flex;gap:8px">
+                        <button id="btnLogout" class="small ghost">Abmelden</button>
+                        <button id="claimPro" class="small">Pro-Code an Konto binden</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <strong>Extras</strong>
+                <div style="margin-top:8px">
+                    <button id="toggleBudget" class="small ghost">Budgetlimit setzen</button>
+                    <div id="budgetArea" style="margin-top:8px;display:none">
+                        <input id="budgetLimit" type="number" placeholder="Budget (€)" />
+                        <div style="display:flex;gap:8px;margin-top:8px">
+                            <button id="saveBudget" class="small">Speichern</button>
+                            <button id="clearBudget" class="small ghost">Löschen</button>
+                        </div>
+                        <div id="budgetNote" class="tiny" style="margin-top:8px"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>Erstellt als Demo. Pro-Code: "popo".</footer>
+</main>
+
+<!-- Auth slide-in panel -->
+<div id="authPanel" aria-hidden="true">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="authTitle">Anmelden</h3>
+        <button id="closeAuth" class="small ghost">Schließen</button>
+    </div>
+    <div class="auth-tabs">
+        <button id="tabLogin" class="small">Anmelden</button>
+        <button id="tabRegister" class="small ghost">Registrieren</button>
+    </div>
+    <div id="authForms">
+        <div id="loginForm">
+            <div class="auth-row"><label>Benutzername</label><input id="loginUser" type="text" /></div>
+            <div class="auth-row"><label>Passwort</label><input id="loginPass" type="password" /></div>
+            <div class="auth-footer"><button id="doLogin" class="small">Anmelden</button></div>
+        </div>
+        <div id="registerForm" style="display:none">
+            <div class="auth-row"><label>Benutzername</label><input id="regUser" type="text" /></div>
+            <div class="auth-row"><label>Passwort</label><input id="regPass" type="password" /></div>
+            <div class="auth-footer"><button id="doRegister" class="small">Registrieren</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Pro popup container area (popups created dynamically) -->
+
+<footer></footer>
+
+<!-- extern: Chart.js, html2canvas, jsPDF -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+/*
+    Budget Planner (Deutsch) - Erweiterung:
+    - Auth-Panel (Anmelden, Registrieren, Abmelden) als Slide-in statt prompt
+    - Animierte Pro-Popups, die regelmäßig erscheinen (solange Pro nicht aktiv)
+*/
+
+/* Utilities */
+const $ = id => document.getElementById(id);
+const saveLS = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+const loadLS = k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){return null} }
+
+/* State */
+let STATE = {
+    expenses: loadLS('bp_expenses') || [],
+    incomes: loadLS('bp_incomes') || [],
+    theme: loadLS('bp_theme') || 'indigo',
+    design: loadLS('bp_design') || 'card',
+    proValid: loadLS('bp_proValid') || false,
+    users: loadLS('bp_users') || {},
+    currentUser: loadLS('bp_currentUser') || null,
+    budgetLimit: loadLS('bp_budget') || null
+};
+
+/* Popup interval holder */
+let popupInterval = null;
+
+/* Helpers */
+function isProActive(){ return STATE.proValid || (STATE.currentUser && STATE.users[STATE.currentUser] && STATE.users[STATE.currentUser].isPro); }
+
+/* Elements */
+const desc = $('desc'), amount = $('amount'), category = $('category'), addBtn = $('addBtn');
+const entryType = $('entryType');
+const expensesList = $('expensesList'), incomesList = $('incomesList');
+const totalIncomeEl = $('totalIncome'), totalExpenseEl = $('totalExpense'), netEl = $('net');
+const proCode = $('proCode'), unlockPro = $('unlockPro'), proMsg = $('proMsg'), proNote = $('proNote'), proBadgeArea = $('proBadgeArea');
+const designs = document.querySelectorAll('.design'), swatches = document.querySelectorAll('.swatch');
+const downloadPdf = $('downloadPdf'), clearAll = $('clearAll');
+const btnAccount = $('btnAccount'), showLogin = $('showLogin'), showRegister = $('showRegister');
+const loggedIn = $('loggedIn'), usernameDisplay = $('usernameDisplay'), btnLogout = $('btnLogout'), claimPro = $('claimPro');
+const exportJSON = $('exportJSON'), importJSON = $('importJSON');
+const toggleBudget = $('toggleBudget'), budgetArea = $('budgetArea'), budgetLimit = $('budgetLimit'), saveBudget = $('saveBudget'), clearBudget = $('clearBudget'), budgetNote = $('budgetNote');
+const freeLimitNote = $('freeLimitNote'), freeLimitNoteIncome = $('freeLimitNoteIncome');
+
+const authPanel = $('authPanel'), closeAuth = $('closeAuth'), tabLogin = $('tabLogin'), tabRegister = $('tabRegister');
+const loginForm = $('loginForm'), registerForm = $('registerForm');
+const doLogin = $('doLogin'), doRegister = $('doRegister');
+const loginUser = $('loginUser'), loginPass = $('loginPass'), regUser = $('regUser'), regPass = $('regPass');
+const authTitle = $('authTitle');
+
+/* Chart */
+let categoryChart = null;
+
+/* Init UI state */
+function applyTheme(){ document.documentElement.classList.remove('theme-rose','theme-emerald','theme-indigo'); const t = STATE.theme || 'indigo'; if(t==='rose') document.documentElement.classList.add('theme-rose'); if(t==='emerald') document.documentElement.classList.add('theme-emerald'); if(t==='indigo') document.documentElement.classList.add('theme-indigo'); saveLS('bp_theme', STATE.theme); }
+function applyDesign(){ document.body.classList.remove('design-mode-card','design-mode-list','design-mode-minimal'); document.body.classList.add('design-mode-' + (STATE.design||'card')); saveLS('bp_design', STATE.design); }
+
+function renderUserArea(){
+    if(STATE.currentUser){
+        $('userArea').style.display='none';
+        loggedIn.style.display='block';
+        usernameDisplay.textContent = STATE.currentUser;
+    } else {
+        $('userArea').style.display='flex';
+        loggedIn.style.display='none';
+    }
+    setProUI(isProActive());
+}
+
+function setProUI(val){
+    STATE.proValid = STATE.proValid || false;
+    saveLS('bp_proValid', STATE.proValid);
+    proNote.innerHTML = val ? '<span class="badge">Pro aktiviert</span>' : '<span class="tiny">Freie Version</span>';
+    proBadgeArea.innerHTML = val ? '<span class="badge">PRO</span>' : '';
+    document.querySelectorAll('.swatch.locked').forEach(s=>{
+        s.style.opacity = val ? 1 : 0.36;
+        s.style.pointerEvents = val ? 'auto' : 'none';
+    });
+    renderLists();
+
+    // manage popups: stop when pro active, start when not
+    if(val){ stopProPopups(); removeAllProPopups(); } else { startProPopups(); }
+}
+
+function saveState(){ saveLS('bp_expenses', STATE.expenses); saveLS('bp_incomes', STATE.incomes); saveLS('bp_users', STATE.users); saveLS('bp_currentUser', STATE.currentUser); saveLS('bp_budget', STATE.budgetLimit); saveLS('bp_proValid', STATE.proValid); }
+
+/* Entries */
+function addExpense(item){ STATE.expenses.push(Object.assign({id:Date.now()+"e"}, item)); saveState(); renderLists(); }
+function addIncome(item){ STATE.incomes.push(Object.assign({id:Date.now()+"i"}, item)); saveState(); renderLists(); }
+function removeExpense(id){ STATE.expenses = STATE.expenses.filter(e=>e.id!==id); saveState(); renderLists(); }
+function removeIncome(id){ STATE.incomes = STATE.incomes.filter(e=>e.id!==id); saveState(); renderLists(); }
+
+/* Render lists & stats */
+function renderLists(){
+    expensesList.innerHTML = '';
+    incomesList.innerHTML = '';
+
+    const freeLimit = 10;
+    const pro = isProActive();
+
+    if(!pro && STATE.expenses.length>=freeLimit){ freeLimitNote.textContent = `Du hast ${STATE.expenses.length} Ausgaben. Upgrade auf Pro für unbegrenzte Einträge.`; } else freeLimitNote.textContent='';
+
+    STATE.expenses.forEach(e=>{
+        const div = document.createElement('div');
+        div.className = 'expense';
+        div.innerHTML = `<div>
+                <div style="font-weight:600">${escapeHtml(e.desc)}</div>
+                <div class="meta tiny"><div>${escapeHtml(e.category||'—')}</div><div>•</div><div>${new Date(e.time).toLocaleString()}</div></div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-weight:700;color:#b02a2a">- €${(+e.amount).toFixed(2)}</div>
+                <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end">
+                    <button class="ghost small" onclick="shareExpense('${e.id}')">Teilen</button>
+                    <button class="small danger" onclick="window.confirm('Löschen?') && removeExpense('${e.id}')">Löschen</button>
+                </div>
+            </div>`;
+        expensesList.appendChild(div);
+    });
+
+    if(!pro && STATE.incomes.length>=freeLimit){ freeLimitNoteIncome.textContent = `Du hast ${STATE.incomes.length} Einnahmen. Upgrade auf Pro für unbegrenzte Einträge.`; } else freeLimitNoteIncome.textContent='';
+
+    STATE.incomes.forEach(i=>{
+        const div = document.createElement('div');
+        div.className = 'expense';
+        div.innerHTML = `<div>
+                <div style="font-weight:600">${escapeHtml(i.desc)}</div>
+                <div class="meta tiny"><div>${escapeHtml(i.category||'—')}</div><div>•</div><div>${new Date(i.time).toLocaleString()}</div></div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-weight:700;color:#059669">+ €${(+i.amount).toFixed(2)}</div>
+                <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end">
+                    <button class="ghost small" onclick="shareIncome('${i.id}')">Teilen</button>
+                    <button class="small danger" onclick="window.confirm('Löschen?') && removeIncome('${i.id}')">Löschen</button>
+                </div>
+            </div>`;
+        incomesList.appendChild(div);
+    });
+
+    const totalExpense = STATE.expenses.reduce((s,i)=>s+Number(i.amount),0);
+    const totalIncome = STATE.incomes.reduce((s,i)=>s+Number(i.amount),0);
+    totalExpenseEl.textContent = '€' + totalExpense.toFixed(2);
+    totalIncomeEl.textContent = '€' + totalIncome.toFixed(2);
+    netEl.textContent = '€' + (totalIncome - totalExpense).toFixed(2);
+
+    if(STATE.budgetLimit && totalExpense>STATE.budgetLimit){
+        budgetNote.innerHTML = `<span class="danger">Budget überschritten! Limit: €${Number(STATE.budgetLimit).toFixed(2)}</span>`;
+    } else {
+        budgetNote.textContent = STATE.budgetLimit ? `Budget-Limit: €${Number(STATE.budgetLimit).toFixed(2)}` : '';
+    }
+
+    updateChart();
+}
+function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+
+/* Chart */
+function updateChart(){
+    const byCat = {};
+    STATE.expenses.forEach(e => { const c = e.category || 'Unbekannt'; byCat[c] = (byCat[c]||0)+Number(e.amount); });
+    const labels = Object.keys(byCat);
+    const data = labels.map(l=>byCat[l]);
+    const ctx = document.getElementById('categoryChart');
+    if(categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { labels, datasets:[{data, backgroundColor: generateColors(data.length)}] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+    });
+}
+function generateColors(n){
+    const base = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#6366f1';
+    const colors = [];
+    for(let i=0;i<n;i++){ colors.push(shadeColor(base, i*12 - n*6)); }
+    return colors;
+}
+function shadeColor(col, amt){
+    try{
+        col = col.trim();
+        if(col[0]==='#') col = col.slice(1);
+        const num = parseInt(col,16);
+        let r = (num>>16) + amt, g = ((num>>8)&0x00FF)+amt, b = (num&0x0000FF)+amt;
+        r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
+        return '#'+(r<<16 | g<<8 | b).toString(16).padStart(6,'0');
+    }catch(e){ return col; }
+}
+
+/* Pro unlock */
+unlockPro.addEventListener('click',()=>{
+    const code = proCode.value.trim();
+    if(code === 'popo'){
+        if(STATE.currentUser){
+            STATE.users[STATE.currentUser] = STATE.users[STATE.currentUser] || {};
+            STATE.users[STATE.currentUser].isPro = true;
+            saveLS('bp_users', STATE.users);
+            STATE.proValid = true;
+            saveLS('bp_proValid', true);
+            setProUI(true);
+            proMsg.textContent = 'Pro für dieses Konto aktiviert.';
+        } else {
+            STATE.proValid = true;
+            saveLS('bp_proValid', true);
+            setProUI(true);
+            proMsg.textContent = 'Pro lokal aktiviert. Du kannst es an ein Konto binden durch Anmeldung.';
+        }
+    } else {
+        STATE.proValid = false;
+        saveLS('bp_proValid', false);
+        setProUI(false);
+        proMsg.textContent = 'Ungültiger Code.';
+        spawnProPopup('Ungültiger Code — Pro freischalten!');
+    }
+});
+
+/* Add entries */
+addBtn.addEventListener('click',()=>{
+    const d = desc.value.trim(); const a = parseFloat(amount.value); const c = category.value.trim();
+    const type = entryType.value || 'expense';
+    if(!d || !a || isNaN(a)){ alert('Bitte Beschreibung und Betrag angeben.'); return; }
+    const pro = isProActive();
+    if(type==='expense'){
+        if(!pro && STATE.expenses.length >= 10){ alert('Freie Version: Maximal 10 Ausgaben. Upgrade auf Pro für unbegrenzte Einträge.'); spawnProPopup('Mehr Einträge mit Pro!'); return; }
+        addExpense({desc:d, amount:a, category:c, time:Date.now()});
+    } else {
+        if(!pro && STATE.incomes.length >= 10){ alert('Freie Version: Maximal 10 Einnahmen. Upgrade auf Pro für unbegrenzte Einträge.'); spawnProPopup('Mehr Einträge mit Pro!'); return; }
+        addIncome({desc:d, amount:a, category:c, time:Date.now()});
+    }
+    desc.value=''; amount.value=''; category.value='';
+});
+
+/* Designs / themes */
+document.querySelectorAll('.design').forEach(el=>{
+    el.addEventListener('click', function(){
+        document.querySelectorAll('.design').forEach(x=>x.classList.remove('active'));
+        this.classList.add('active');
+        STATE.design = this.dataset.mode;
+        applyDesign();
+    });
+});
+swatches.forEach(s=>{
+    s.addEventListener('click', function(){
+        const locked = s.classList.contains('locked');
+        const pro = isProActive();
+        if(locked && !pro){ spawnProPopup('Dieses Theme ist Pro-only'); alert('Dieses Theme ist Pro-only.'); return; }
+        const theme = s.getAttribute('data-theme') || s.title.toLowerCase();
+        STATE.theme = theme;
+        applyTheme();
+    });
+});
+
+/* PDF Export (Pro-only) */
+downloadPdf.addEventListener('click', async ()=>{
+    if(!isProActive()){ alert('PDF-Export ist Pro-only.'); spawnProPopup('PDF Export nur mit Pro'); return; }
+    try{
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('p','pt','a4');
+        await html2canvas(document.querySelector('.top-stats'), {scale:2}).then(canvas=>{
+            const img = canvas.toDataURL('image/png');
+            doc.setFontSize(14);
+            doc.text('Budget Planner - Statistik', 40, 40);
+            doc.addImage(img, 'PNG', 40, 60, 520, 200);
+        });
+        let y = 290;
+        doc.setFontSize(12);
+        doc.text('Einnahmen:', 40, y);
+        y += 18;
+        STATE.incomes.forEach(e=>{
+            const line = `${new Date(e.time).toLocaleDateString()} ${e.category||'—'} ${e.desc} — €${Number(e.amount).toFixed(2)}`;
+            doc.text(line, 40, y); y+=14;
+            if(y>750){ doc.addPage(); y=40; }
+        });
+        doc.addPage();
+        y = 40;
+        doc.text('Ausgaben:', 40, y);
+        y += 18;
+        STATE.expenses.forEach(e=>{
+            const line = `${new Date(e.time).toLocaleDateString()} ${e.category||'—'} ${e.desc} — €${Number(e.amount).toFixed(2)}`;
+            doc.text(line, 40, y); y+=14;
+            if(y>750){ doc.addPage(); y=40; }
+        });
+        doc.save('budget-stats.pdf');
+    }catch(e){ alert('Fehler beim Erstellen der PDF: ' + (e.message||e)); }
+});
+
+/* Sharing */
+function shareExpense(id){
+    const e = STATE.expenses.find(x=>x.id===id);
+    if(!e) return;
+    const text = `${e.desc} — €${Number(e.amount).toFixed(2)} (${e.category||'—'})`;
+    if(navigator.share){ navigator.share({title:'Ausgabe', text}); } else { prompt('Kopiere:', text); }
+}
+function shareIncome(id){
+    const i = STATE.incomes.find(x=>x.id===id);
+    if(!i) return;
+    const text = `${i.desc} + €${Number(i.amount).toFixed(2)} (${i.category||'—'})`;
+    if(navigator.share){ navigator.share({title:'Einnahme', text}); } else { prompt('Kopiere:', text); }
+}
+window.removeExpense = removeExpense;
+window.removeIncome = removeIncome;
+window.shareExpense = shareExpense;
+window.shareIncome = shareIncome;
+
+/* Clear all */
+clearAll.addEventListener('click', ()=>{
+    if(!confirm('Alle Einträge (Einnahmen & Ausgaben) löschen?')) return;
+    STATE.expenses = [];
+    STATE.incomes = [];
+    saveState();
+    renderLists();
+});
+
+/* Simple Auth (forms) */
+function openAuthPanel(mode='login'){
+    authPanel.style.display = 'block';
+    authPanel.setAttribute('aria-hidden','false');
+    if(mode==='login'){ loginForm.style.display='block'; registerForm.style.display='none'; authTitle.textContent='Anmelden'; tabLogin.classList.remove('ghost'); tabRegister.classList.add('ghost'); }
+    else { loginForm.style.display='none'; registerForm.style.display='block'; authTitle.textContent='Registrieren'; tabRegister.classList.remove('ghost'); tabLogin.classList.add('ghost'); }
+}
+function closeAuthPanel(){ authPanel.style.display='none'; authPanel.setAttribute('aria-hidden','true'); loginUser.value=''; loginPass.value=''; regUser.value=''; regPass.value=''; }
+
+tabLogin.addEventListener('click', ()=>openAuthPanel('login'));
+tabRegister.addEventListener('click', ()=>openAuthPanel('register'));
+btnAccount.addEventListener('click', ()=>openAuthPanel());
+closeAuth.addEventListener('click', closeAuthPanel);
+showLogin.addEventListener('click', ()=>openAuthPanel('login'));
+showRegister.addEventListener('click', ()=>openAuthPanel('register'));
+
+doRegister.addEventListener('click', ()=>{
+    const u = regUser.value && regUser.value.trim();
+    const p = regPass.value && regPass.value.trim();
+    if(!u || !p){ alert('Bitte Benutzernamen und Passwort eingeben.'); return; }
+    if(STATE.users[u]){ alert('Benutzer existiert bereits.'); return; }
+    STATE.users[u] = {password:p, isPro:false};
+    saveLS('bp_users', STATE.users);
+    alert('Registrierung erfolgreich. Du kannst dich jetzt anmelden.');
+    openAuthPanel('login');
+});
+
+doLogin.addEventListener('click', ()=>{
+    const u = loginUser.value && loginUser.value.trim();
+    const p = loginPass.value && loginPass.value.trim();
+    if(!u || !p){ alert('Bitte Benutzernamen und Passwort eingeben.'); return; }
+    const user = STATE.users[u];
+    if(!user || user.password !== p){ alert('Ungültige Anmeldedaten.'); spawnProPopup('Noch kein Pro? Hol es dir!'); return; }
+    STATE.currentUser = u;
+    saveLS('bp_currentUser', u);
+    renderUserArea();
+    saveLS('bp_users', STATE.users);
+    closeAuthPanel();
+    alert('Angemeldet.');
+});
+
+btnLogout.addEventListener('click', ()=>{
+    STATE.currentUser = null;
+    saveLS('bp_currentUser', null);
+    renderUserArea();
+    alert('Abgemeldet.');
+});
+
+claimPro.addEventListener('click', ()=>{
+    if(!STATE.currentUser){ alert('Bitte zuerst anmelden.'); return; }
+    const code = prompt('Pro-Code eingeben, um an dieses Konto zu binden:');
+    if(!code) return;
+    if(code==='popo'){
+        STATE.users[STATE.currentUser] = STATE.users[STATE.currentUser] || {};
+        STATE.users[STATE.currentUser].isPro = true;
+        saveLS('bp_users', STATE.users);
+        STATE.proValid = true;
+        saveLS('bp_proValid', true);
+        setProUI(true);
+        alert('Pro an dieses Konto gebunden.');
+    } else {
+        alert('Ungültiger Code.');
+        spawnProPopup('Falscher Code — Pro trotzdem entdecken!');
+    }
+});
+
+/* Export / Import JSON */
+exportJSON.addEventListener('click', ()=>{
+    const data = JSON.stringify({expenses:STATE.expenses, incomes:STATE.incomes, theme:STATE.theme, design:STATE.design}, null, 2);
+    const blob = new Blob([data], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'budget-export.json'; a.click();
+    URL.revokeObjectURL(url);
+});
+importJSON.addEventListener('click', ()=>{
+    const txt = prompt('Füge JSON ein (Export-Format).');
+    if(!txt) return;
+    try{
+        const obj = JSON.parse(txt);
+        if(Array.isArray(obj.expenses)) STATE.expenses = STATE.expenses.concat(obj.expenses.map(e=>Object.assign({id:Date.now()+"e"+Math.random(),time:Date.now()}, e)));
+        if(Array.isArray(obj.incomes)) STATE.incomes = STATE.incomes.concat(obj.incomes.map(i=>Object.assign({id:Date.now()+"i"+Math.random(),time:Date.now()}, i)));
+        if(obj.theme) STATE.theme = obj.theme;
+        if(obj.design) STATE.design = obj.design;
+        saveState();
+        applyTheme();
+        applyDesign();
+        renderLists();
+        alert('Import erfolgreich.');
+    }catch(e){ alert('Ungültiges JSON.'); }
+});
+
+/* Budget area */
+toggleBudget.addEventListener('click', ()=>{ budgetArea.style.display = budgetArea.style.display==='none' ? 'block' : 'none'; });
+saveBudget.addEventListener('click', ()=>{
+    const v = parseFloat(budgetLimit.value);
+    if(isNaN(v)){ alert('Bitte gültigen Betrag eingeben.'); return; }
+    STATE.budgetLimit = v;
+    saveLS('bp_budget', v);
+    renderLists();
+    alert('Budget gespeichert.');
+});
+clearBudget.addEventListener('click', ()=>{
+    STATE.budgetLimit = null;
+    saveLS('bp_budget', null);
+    renderLists();
+    alert('Budget entfernt.');
+});
+
+/* Pro popup creation and scheduler */
+function spawnProPopup(message='Hol dir Pro für mehr Funktionen!'){
+    if(isProActive()) return;
+    const existing = document.querySelector('.pro-popup'); // don't stack too many
+    if(existing) return;
+    const d = document.createElement('div');
+    d.className = 'pro-popup';
+    d.innerHTML = `<div style="flex:1"><div class="msg">${escapeHtml(message)}</div><div style="font-size:12px;margin-top:6px;opacity:0.9">Unbegrenzte Einträge, mehr Themes, PDF & Anmeldung.</div></div>
+                   <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+                     <button class="cta" id="popupProBtn">Jetzt Pro</button>
+                     <button class="close" id="popupClose">✕</button>
+                   </div>
+                   <div class="floaters">
+                        <div class="pro-circle f1"></div>
+                        <div class="pro-circle f2"></div>
+                        <div class="pro-circle f3"></div>
+                   </div>`;
+    document.body.appendChild(d);
+    const close = d.querySelector('#popupClose');
+    const probtn = d.querySelector('#popupProBtn');
+    close.addEventListener('click', ()=>{ d.remove(); });
+    probtn.addEventListener('click', ()=>{
+        openAuthPanel('login');
+        const p = $('proCode');
+        if(p) p.focus();
+        d.remove();
+    });
+    // auto remove after a while
+    setTimeout(()=>{ try{ d.remove(); }catch(e){} }, 8000);
+}
+
+function removeAllProPopups(){ document.querySelectorAll('.pro-popup').forEach(n=>n.remove()); }
+function startProPopups(){
+    if(popupInterval) return;
+    spawnProPopup('Probier Pro: unbegrenzte Einträge!');
+    popupInterval = setInterval(()=>{ if(!isProActive()) spawnProPopup('Upgrade auf Pro für mehr Features!'); else stopProPopups(); }, 20000);
+}
+function stopProPopups(){ if(popupInterval){ clearInterval(popupInterval); popupInterval = null; } }
+
+/* Init render */
+applyTheme();
+applyDesign();
+renderUserArea();
+renderLists();
+startProPopups();
+
+</script>
+</body>
+</html>
